@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "card-creator",
+    "card-reviewer",
+    "card-manager",
+    "card",
+]
