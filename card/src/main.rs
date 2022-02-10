@@ -1,5 +1,5 @@
-use card_creator;
 use card_reviewer;
+use card_creator;
 
 use clap::{
     app_from_crate,

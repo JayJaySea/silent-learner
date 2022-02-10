@@ -9,5 +9,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "3.0.14", features = ["cargo"] }
-card-reviewer = { path = "../card-reviewer" }
-card-creator = { path = "../card-creator" }
+card-manager = { path = "../card-manager" }
