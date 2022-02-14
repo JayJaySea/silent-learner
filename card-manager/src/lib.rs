@@ -4,7 +4,11 @@ pub mod card;
 
 #[cfg(test)]
 mod tests {
-    use crate::card::Card;
+    use crate::card::{
+        Card,
+        CardManager,
+        Mode,
+    };
     use std::time::{ SystemTime, UNIX_EPOCH};
 
     #[test]
@@ -58,5 +62,10 @@ mod tests {
                     .expect("Time went backwards").as_secs() / 86400
             );
         assert_eq!(card.level(), 0);
+    }
+
+    #[test]
+    fn create_card_manager() {
+        let mut manager = CardManager::new(Mode::Add);
     }
 }

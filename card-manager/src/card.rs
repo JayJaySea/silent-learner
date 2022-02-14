@@ -1,4 +1,24 @@
-use std::time::{ SystemTime, UNIX_EPOCH};
+use std::{
+    ffi::OsString,
+    error::Error,
+    fs::{
+        File,
+        OpenOptions,
+    },
+    time::{ 
+        SystemTime, 
+        UNIX_EPOCH
+    },
+    env::*,
+    process,
+};
+
+use csv::{
+    Reader,
+    Writer,
+};
+
+
 
 pub struct Card {
     question: String,
@@ -58,5 +78,87 @@ impl Card {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards").as_secs() / 86400
+    }
+}
+
+pub enum Mode {
+    Review,
+    Add,
+}
+
+type Record = (String, String, Option<u64>, f64, f64);
+
+pub struct CardManager{
+    cards: Option<Vec<Record>>,
+}
+
+impl CardManager {
+    const PATH: &'static str = "../../data/cards.csv";
+
+    pub fn new(mode: Mode) -> CardManager {
+        match mode {
+            Mode::Review => 
+                CardManager { 
+                    cards: CardManager::load_cards(),
+                },
+
+            Mode::Add => 
+                CardManager { 
+                    cards: None,
+                },
+        }
+    }
+
+
+    fn load_cards() -> Option<Vec<Record>> {
+        println!("{}", CardManager::PATH);
+        let file = match File::open(CardManager::PATH) {
+            Ok(f) => f,
+            Err(_) => todo!(),
+        };
+
+        let mut cards = Vec::new();
+
+        let mut rdr = csv::ReaderBuilder::new()
+            .delimiter(b';')
+            .from_reader(file);
+
+
+        for result in rdr.deserialize() {
+            let record: Record = match result {
+                Ok(record) => record,
+                Err(err) => {
+                    println!("Error reading CSV from <stdin>: {}", err);
+                    process::exit(1);
+                },
+            };
+            
+            cards.push(record);
+        }
+
+        if cards.is_empty() {
+            None
+        }
+        else {
+            Some(cards)
+        }
+    }
+    
+    pub fn save_card(card: &Card) {
+        let path = format!("{}/{}", current_exe().unwrap().as_path().parent().unwrap().display(), CardManager::PATH);
+        //panic!("{}", path);
+        let file = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(path)
+            .unwrap();
+
+
+        let mut wtr = csv::WriterBuilder::new()
+            .delimiter(b';')
+            .from_writer(file);
+
+        wtr.serialize((card.next_review(), card.level(), card.label(), card.question(), card.answer())).unwrap();
+        wtr.flush().unwrap();
     }
 }
