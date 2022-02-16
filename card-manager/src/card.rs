@@ -94,6 +94,7 @@ pub struct CardManager{
 impl CardManager {
     const DIR: &'static str = "silent-learner";
     const PATH: &'static str = "silent-learner/cards.csv";
+    const TITLE: (&'static str, &'static str, &'static str, &'static str, &'static str) = ("NextReview", "Level", "Label", "Question", "Answer");
 
     pub fn new() -> CardManager {
         CardManager { 
@@ -112,6 +113,29 @@ impl CardManager {
     }
 
     pub fn save_progress(&self, marked: &Vec<Card>) {
+        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        let file = OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .create(true)
+            .open(path).unwrap();
+
+        let mut wtr = csv::WriterBuilder::new()
+            .delimiter(b';')
+            .from_writer(file);
+
+        wtr.serialize(CardManager::TITLE).unwrap();
+        
+        if let Some(cards) = &self.cards {
+            for i in 0..(cards.len() - marked.len()) {
+                wtr.serialize((cards[i].next_review(), cards[i].level(), cards[i].label(), cards[i].question(), cards[i].answer())).unwrap();
+            }
+            for card in marked {
+                wtr.serialize((card.next_review(), card.level(), card.label(), card.question(), card.answer())).unwrap();
+            }
+        }
+
+        wtr.flush().unwrap();
     }
 
     pub fn cards(&self) -> &Option<Vec<Card>> {
@@ -211,7 +235,7 @@ impl CardManager {
                         .delimiter(b';')
                         .from_writer(f);
 
-                    wtr.serialize(("NextReview", "Level", "Label", "Question", "Answer")).unwrap();
+                    wtr.serialize(CardManager::TITLE).unwrap();
                     wtr.flush().unwrap();
 
                     OpenOptions::new()

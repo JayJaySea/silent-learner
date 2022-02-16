@@ -56,10 +56,15 @@ impl ReviewMenu {
 
     pub fn mark_card(&mut self, mark: u8) {
         if let Some(mut c) = self.for_review.pop_front() {
+            c.with_next_review(self.calculate_next_review(c.level(), mark));
             c.with_level(self.calculate_new_level(c.level(), mark));
-            c.with_next_review(self.calculate_next_review(c.level()));
 
-            self.marked.push(c);
+            if mark == 1 {
+                self.marked.push(c);
+            }
+            else {
+                self.for_review.push_back(c);
+            }
         }
 
         self.revealed = false;
@@ -69,8 +74,8 @@ impl ReviewMenu {
         (level + 1)*(mark as u64)
     }
 
-    fn calculate_next_review(&self, level: u64) -> u64 {
-        self.card.next_review() + u64::pow(2, level as u32)
+    fn calculate_next_review(&self, level: u64, mark: u8) -> u64 {
+        self.card.next_review() + u64::pow(2, level as u32)*(mark as u64)
     }
 
     fn prepare_cards_for_review(&mut self) {
