@@ -93,7 +93,7 @@ pub struct CardManager{
 
 impl CardManager {
     const DIR: &'static str = "silent-learner";
-    const PATH: &'static str = "silent-learner/cards.csv";
+    const PATH: &'static str = "silent-learner/cards";
     const TITLE: (&'static str, &'static str, &'static str, &'static str, &'static str) = ("NextReview", "Level", "Label", "Question", "Answer");
 
     pub fn new() -> CardManager {
@@ -113,7 +113,7 @@ impl CardManager {
     }
 
     pub fn save_progress(&self, marked: &Vec<Card>) {
-        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        let path = format!("{}/{}{}", data_local_dir().unwrap().display() , CardManager::PATH, ".csv");
         let file = OpenOptions::new()
             .truncate(true)
             .write(true)
@@ -184,12 +184,61 @@ impl CardManager {
             cards.sort_by(|a, b| {
                 b.next_review().cmp(&a.next_review())
             });
+            CardManager::make_backup(&cards);
             Some(cards)
         }
     }
 
+    fn make_backup(cards: &Vec<Card>) {
+        let path = format!("{}/{}/{}/{}{}{}", data_local_dir().unwrap().display() , CardManager::DIR, "backup", "cards", CardManager::get_today_str(), ".bak");
+        let file = match OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .create(true)
+            .open(path.clone()) {
+                Ok(f) => f,
+                Err(e) => match e.kind() {
+                    ErrorKind::NotFound => match CardManager::create_data_files() {
+                        Ok(_) =>
+                            OpenOptions::new()
+                                .truncate(true)
+                                .write(true)
+                                .create(true)
+                                .open(path).expect("Couldn't open file anyways"),
+                        Err(e) => panic!("Can't create data directory! Error: {:?}", e),
+                    },
+                    other_error => panic!("Problem opening the file: {:?}", other_error),
+                },
+            };
+
+        let mut wtr = csv::WriterBuilder::new()
+            .delimiter(b';')
+            .from_writer(file);
+
+        wtr.serialize(CardManager::TITLE).unwrap();
+
+        for card in cards {
+            wtr.serialize((card.next_review(), card.level(), card.label(), card.question(), card.answer())).unwrap();
+        }
+        
+        wtr.flush().unwrap();
+    }
+
+    fn get_today_str() -> String {
+        match (Card::today() + 3) % 7 {
+            0 => String::from("_monday"),
+            1 => String::from("_tuesday"),
+            2 => String::from("_wednesday"),
+            3 => String::from("_thursday"),
+            4 => String::from("_friday"),
+            5 => String::from("_saturday"),
+            6 => String::from("_sunday"),
+            _ => unreachable!(),
+        }
+    }
+
     fn read_cards_file() -> Option<File> { 
-        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        let path = format!("{}/{}{}", data_local_dir().unwrap().display() , CardManager::PATH, ".csv");
         match File::open(path) {
             Ok(f) => Some(f),
             Err(e) => match e.kind() {
@@ -203,7 +252,7 @@ impl CardManager {
     } 
 
     fn write_cards_file() -> File {
-        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        let path = format!("{}/{}{}", data_local_dir().unwrap().display() , CardManager::PATH, ".csv");
         match OpenOptions::new()
             .append(true)
             .create(true)
@@ -222,9 +271,11 @@ impl CardManager {
 
     fn create_data_files() -> Result<File, Error> {
         let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::DIR);
+        let backup_path = format!("{}/{}", path , "backup");
         create_dir_all(path)?;
+        create_dir_all(backup_path)?;
 
-        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        let path = format!("{}/{}{}", data_local_dir().unwrap().display() , CardManager::PATH, ".csv");
 
         match OpenOptions::new()
             .append(true)
