@@ -128,7 +128,7 @@ impl Menu for ReviewMenu {
         }
 
         ReviewMenu::clear();
-        println!("{}", "Review session".red().bold());
+        println!("{}", "Review cards".red().bold());
         println!("{} {}", "Question:".blue().bold(), card.question());
         println!("{} {}", "Answer:".blue().bold(), card.answer());
         stdout().flush().unwrap();
