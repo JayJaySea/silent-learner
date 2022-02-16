@@ -11,6 +11,8 @@ use card::{
 };
 
 use card::cli::add::AddMenu;
+use card::cli::review::ReviewMenu;
+
 use card_manager::card::{
     CardManager,
     Card,
@@ -52,7 +54,7 @@ fn main() {
                     loop {
                         menu.run();
 
-                        match menu.choice() {
+                        match menu.choice("Enter a choice: ") {
                             Some(c) => match c {
                                 Choice::Accept => {
                                     menu.save_card();
@@ -76,9 +78,32 @@ fn main() {
             }
         },
 
-        Some(("review", _)) => println!(
-            "'card review' was used :)"
-        ),
+        Some(("review", _)) => {
+            let mut menu = ReviewMenu::new();
+
+            loop {
+                menu.run();
+                match menu.choice("Enter a choice: ") {
+                    Some(c) => match c {
+                        Choice::Remembered => {
+                            menu.mark_card(1);
+                        },
+                        Choice::Forgotten => {
+                            menu.mark_card(0);
+                        },
+                            
+                        Choice::Save => {
+                            menu.save_progress();
+                            break;
+                        },
+                        Choice::Quit => break,
+                        _ => unreachable!(),
+                    }
+
+                    None => (),
+                }
+            }
+        },
 
         _ => unreachable!(""),
     }

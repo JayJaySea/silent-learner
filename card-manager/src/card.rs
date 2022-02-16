@@ -1,7 +1,6 @@
 use std::{
-    ffi::OsString,
-    error::Error,
     fs::{
+        create_dir_all,
         File,
         OpenOptions,
     },
@@ -9,33 +8,33 @@ use std::{
         SystemTime, 
         UNIX_EPOCH
     },
-    env::*,
+    io::{
+        Error,
+        ErrorKind,
+    },
     process,
 };
 
-use csv::{
-    Reader,
-    Writer,
-};
+use dirs::*;
 
 
-
+#[derive(Clone, Debug)]
 pub struct Card {
-    question: String,
-    answer: String,
-    label: String,
     next_review: u64,
     level: u64,
+    label: String,
+    question: String,
+    answer: String,
 }
 
 impl Card {
     pub fn new() -> Card {
         Card {
+            next_review: Card::today(),
+            level: 0,
+            label: String::new(),
             question: String::new(),
             answer: String::new(),
-            label: String::new(),
-            next_review: Card::today(),
-            level: 0
         }
     }
 
@@ -86,35 +85,43 @@ pub enum Mode {
     Add,
 }
 
-type Record = (String, String, Option<u64>, f64, f64);
+pub type Record = (u64, u64, String, String, String);
 
 pub struct CardManager{
-    cards: Option<Vec<Record>>,
+    cards: Option<Vec<Card>>,
 }
 
 impl CardManager {
-    const PATH: &'static str = "../../data/cards.csv";
+    const DIR: &'static str = "silent-learner";
+    const PATH: &'static str = "silent-learner/cards.csv";
 
-    pub fn new(mode: Mode) -> CardManager {
-        match mode {
-            Mode::Review => 
-                CardManager { 
-                    cards: CardManager::load_cards(),
-                },
-
-            Mode::Add => 
-                CardManager { 
-                    cards: None,
-                },
+    pub fn new() -> CardManager {
+        CardManager { 
+            cards: CardManager::load_cards(),
         }
     }
 
+    pub fn save_card(card: &Card) {
+        let file = CardManager::write_cards_file();    
+        let mut wtr = csv::WriterBuilder::new()
+            .delimiter(b';')
+            .from_writer(file);
 
-    fn load_cards() -> Option<Vec<Record>> {
-        println!("{}", CardManager::PATH);
-        let file = match File::open(CardManager::PATH) {
-            Ok(f) => f,
-            Err(_) => todo!(),
+        wtr.serialize((card.next_review(), card.level(), card.label(), card.question(), card.answer())).unwrap();
+        wtr.flush().unwrap();
+    }
+
+    pub fn save_progress(&self, marked: &Vec<Card>) {
+    }
+
+    pub fn cards(&self) -> &Option<Vec<Card>> {
+        &self.cards
+    }
+
+    fn load_cards() -> Option<Vec<Card>> {
+        let file = match CardManager::read_cards_file() {
+            Some(f) => f,
+            None => return None,
         };
 
         let mut cards = Vec::new();
@@ -133,32 +140,86 @@ impl CardManager {
                 },
             };
             
-            cards.push(record);
+            let (next_review, level, label, question, answer) = record;
+
+            let card = Card {
+                next_review,
+                level,
+                label,
+                question,
+                answer,
+            };
+
+            cards.push(card);
         }
 
         if cards.is_empty() {
             None
         }
         else {
+            cards.sort_by(|a, b| {
+                b.next_review().cmp(&a.next_review())
+            });
             Some(cards)
         }
     }
-    
-    pub fn save_card(card: &Card) {
-        let path = format!("{}/{}", current_exe().unwrap().as_path().parent().unwrap().display(), CardManager::PATH);
-        //panic!("{}", path);
-        let file = OpenOptions::new()
+
+    fn read_cards_file() -> Option<File> { 
+        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        match File::open(path) {
+            Ok(f) => Some(f),
+            Err(e) => match e.kind() {
+                ErrorKind::NotFound => match CardManager::create_data_files() {
+                    Ok(_) => None,
+                    Err(e) => panic!("Can't create data directory! Error: {:?}", e),
+                },
+                other_error => panic!("Problem opening the file: {:?}", other_error),
+            },
+        }
+    } 
+
+    fn write_cards_file() -> File {
+        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
+        match OpenOptions::new()
             .append(true)
             .create(true)
-            .open(path)
-            .unwrap();
+            .open(path) 
+            {
+                Ok(f) => f,
+                Err(e) => match e.kind() {
+                    ErrorKind::NotFound => match CardManager::create_data_files() {
+                        Ok(f) => f,
+                        Err(e) => panic!("Can't create data directory! Error: {:?}", e),
+                    },
+                    other_error => panic!("Problem opening the file: {:?}", other_error),
+                },
+            }
+    }
 
+    fn create_data_files() -> Result<File, Error> {
+        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::DIR);
+        create_dir_all(path)?;
 
-        let mut wtr = csv::WriterBuilder::new()
-            .delimiter(b';')
-            .from_writer(file);
+        let path = format!("{}/{}", data_local_dir().unwrap().display() , CardManager::PATH);
 
-        wtr.serialize((card.next_review(), card.level(), card.label(), card.question(), card.answer())).unwrap();
-        wtr.flush().unwrap();
+        match OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(path.as_str()) {
+                Ok(f) => {
+                    let mut wtr = csv::WriterBuilder::new()
+                        .delimiter(b';')
+                        .from_writer(f);
+
+                    wtr.serialize(("NextReview", "Level", "Label", "Question", "Answer")).unwrap();
+                    wtr.flush().unwrap();
+
+                    OpenOptions::new()
+                        .append(true)
+                        .create(true)
+                        .open(path)
+                },
+                Err(e) => Err(e),
+            }
     }
 }

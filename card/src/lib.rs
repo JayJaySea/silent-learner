@@ -19,14 +19,18 @@ pub trait Menu {
     fn run(&mut self);
 
 
-    fn choice(&self) -> Option<Choice> {
+    fn choice(&self, label: &str) -> Option<Choice> {
         let mut input = String::new();
+
+        if self.options().is_empty() {
+            return Some(Choice::Quit);
+        }
 
         for choice in self.options() {
             println!("{}", self.translate_choice(choice));
         }
 
-        print!("{}", "Enter a choice: ".blue().bold());
+        print!("{}", label.blue().bold());
         stdout().flush().unwrap();
 
         std::io::stdin().read_line(&mut input).expect("Error: Failed to take standard input!"); 
@@ -54,15 +58,25 @@ pub trait Menu {
                 Choice::Quit => format!("{}", "q".red().bold()),
             }; 
 
-        let description = match choice { Choice::Forgotten => format!("{}", "Card forgotten".yellow()),
-                Choice::Remembered => format!("{}", "Card remembered".green().bold()),
-                Choice::Accept => format!("{}", "Accept (save) card".green().bold()),
-                Choice::Discard => format!("{}", "Discard card".yellow().bold()),
+        let description = match choice { 
+                Choice::Forgotten => format!("{}", "Mark as forgotten".yellow().bold()),
+                Choice::Remembered => format!("{}", "Mark as remembered".green().bold()),
+                Choice::Accept => format!("{}", "Accept (save) and continue".green().bold()),
+                Choice::Discard => format!("{}", "Discard and continue".yellow().bold()),
                 Choice::Save => format!("{}", "Save and quit".purple().bold()),
-                Choice::Quit => format!("{}", "Discard and quit".red().bold()),
+                Choice::Quit => format!("{}", "Quit".red().bold()),
             }; 
 
         format!("{}{}{} {}", "[".blue().bold(), letter, "]".blue().bold(), description)
+    }
+
+    fn input_if_empty(&self, empty: bool) -> Option<String> {
+        if empty {
+            Some(self.input())
+        }
+        else {
+            None
+        }
     }
 
     fn input(&self) -> String {

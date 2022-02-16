@@ -8,7 +8,6 @@ use std::io::*;
 use card_manager::card::{
     Card,
     CardManager,
-    Mode,
 };
 
 use colored::*;
@@ -17,41 +16,6 @@ pub struct AddMenu {
     card: Card,
     options: Vec<Choice>,
 } 
-
-impl Menu for AddMenu {
-    fn run(&mut self) {
-        AddMenu::clear();
-
-        println!("{}", "CARD CREATOR".red().bold());
-        print!("{}", "Question: ".blue().bold());
-        stdout().flush().unwrap();
-
-        match self.input_if_empty(self.card.question().is_empty()) {
-            Some(s) => {
-                self.card.with_question(s.as_str());
-                ()
-            },
-            None => println!("{}", self.card.question()),
-        };
-
-        print!("{}", "Answer: ".blue().bold());
-        stdout().flush().unwrap();
-
-        match self.input_if_empty(self.card.answer().is_empty()) {
-            Some(s) => {
-                self.card.with_answer(s.as_str());
-                ()
-            },
-            None => println!("{}", self.card.answer()),
-        };
-
-        stdout().flush().unwrap();
-    }
-
-    fn options(&self) -> &Vec<Choice> {
-        return &self.options;
-    }
-}
 
 impl AddMenu {
     pub fn new() -> AddMenu {
@@ -84,4 +48,39 @@ impl AddMenu {
         }
     }
 
+}
+
+impl Menu for AddMenu {
+    fn run(&mut self) {
+        AddMenu::clear();
+
+        println!("{}", "Create session".red().bold());
+        print!("{}", "Question: ".blue().bold());
+        stdout().flush().unwrap();
+
+        match self.input_if_empty(self.card.question().is_empty()) {
+            Some(s) => {
+                self.card.with_question(s.as_str());
+                ()
+            },
+            None => println!("{}", self.card.question()),
+        };
+
+        print!("{}", "Answer: ".blue().bold());
+        stdout().flush().unwrap();
+
+        match self.input_if_empty(self.card.answer().is_empty()) {
+            Some(s) => {
+                self.card.with_answer(s.as_str());
+                ()
+            },
+            None => println!("{}", self.card.answer()),
+        };
+
+        stdout().flush().unwrap();
+    }
+
+    fn options(&self) -> &Vec<Choice> {
+        return &self.options;
+    }
 }

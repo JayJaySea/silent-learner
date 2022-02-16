@@ -66,6 +66,16 @@ mod tests {
 
     #[test]
     fn create_card_manager() {
-        let mut manager = CardManager::new(Mode::Add);
+        let manager = CardManager::new();
+
+        match manager.cards() {
+            Some(cards) => {
+                for card in cards {
+                    let record:(u64, u64, String, String, String) = card.clone();
+                }
+            }
+
+            None => panic!("Cards file supposedly empty, should be?"),
+        }
     }
 }
