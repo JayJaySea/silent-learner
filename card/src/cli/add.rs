@@ -54,7 +54,7 @@ impl Menu for AddMenu {
     fn run(&mut self) {
         AddMenu::clear();
 
-        println!("{}", "Create session".red().bold());
+        println!("{}", "Add new cards".red().bold());
         print!("{}", "Question: ".blue().bold());
         stdout().flush().unwrap();
 

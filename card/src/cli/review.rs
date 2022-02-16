@@ -6,6 +6,7 @@ use crate::{
 use std::{
     collections::VecDeque,
     io::*,
+    process,
 };
 
 use card_manager::card::{
@@ -88,7 +89,17 @@ impl ReviewMenu {
                 }
             }
 
-            None => todo!("Handle no cards to review"),
+            None => {
+                if let Some(_) = &self.card_manager.cards() {
+                    ()
+                }
+                else {
+                    println!("{}\n\t{}\n\t{}","No cards found. Consider creating some first with:".green().bold(),
+                    "card add".yellow().bold(), 
+                    "card add -q <QUESTION> -a <ANSWER>".yellow().bold());
+                    process::exit(0);
+                }
+            }
         }
     }
 }
@@ -96,7 +107,7 @@ impl ReviewMenu {
 impl Menu for ReviewMenu {
     fn run(&mut self) {
         ReviewMenu::clear();
-        println!("{}", "Review session".red().bold());
+        println!("{}", "Review cards".red().bold());
         let card = match self.for_review.front() {
             Some(c) => c,
             None => {
