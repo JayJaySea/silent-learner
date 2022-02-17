@@ -25,13 +25,13 @@ fn main() {
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
             App::new("add")
-            .about("Adds new flashcard for you to learn.\nWhen used with --question and --answer flags, flashcard is created and program ends.\nWhen used without any flags, menu is displayed to add cards until user decides to quit.\n")
+            .about("Shows menu to add cards")
             .arg(arg!(-q --question [VALUE]))
             .arg(arg!(-a --answer [VALUE])),
         )
         .subcommand(
             App::new("review")
-            .about("Shows review menu to rehearse cards")
+            .about("Shows menu to review cards")
         )
         .get_matches();
 
