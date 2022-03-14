@@ -18,75 +18,7 @@ use std::{
 use dirs::*;
 
 
-#[derive(Clone, Debug)]
-pub struct Card {
-    next_review: u64,
-    level: u64,
-    label: String,
-    question: String,
-    answer: String,
-}
-
-impl Card {
-    pub fn new() -> Card {
-        Card {
-            next_review: Card::today(),
-            level: 0,
-            label: String::new(),
-            question: String::new(),
-            answer: String::new(),
-        }
-    }
-
-    pub fn with_question(&mut self, question: &str) -> &mut Card {
-        self.question = question.to_string();
-        self
-    }
-
-    pub fn with_answer(&mut self, answer: &str) -> &mut Card {
-        self.answer = answer.to_string();
-        self
-    }
-
-    pub fn with_label(&mut self, label: &str) -> &mut Card {
-        self.label = label.to_string();
-        self
-    }
-
-    pub fn with_next_review(&mut self, next_review: u64) -> &mut Card {
-        self.next_review = next_review;
-        self
-    }
-
-    pub fn with_level(&mut self, level: u64) -> &mut Card {
-        self.level = level;
-        self
-    }
-
-    pub fn question(&self) -> &String { &self.question }
-
-    pub fn answer(&self) -> &String { &self.answer }
-
-    pub fn label(&self) -> &String { &self.label }
-
-    pub fn next_review(&self) -> u64 { self.next_review }
-
-    pub fn level(&self) -> u64 { self.level }
-
-    fn today() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards").as_secs() / 86400
-    }
-}
-
-pub enum Mode {
-    Review,
-    Add,
-}
-
 pub type Record = (u64, u64, String, String, String);
-
 pub struct CardManager{
     cards: Option<Vec<Card>>,
 }
@@ -111,6 +43,11 @@ impl CardManager {
         wtr.serialize((card.next_review(), card.level(), card.label(), card.question(), card.answer())).unwrap();
         wtr.flush().unwrap();
     }
+
+    pub fn cards(&self) -> &Option<Vec<Card>> {
+        &self.cards
+    }
+
 
     pub fn save_progress(&self, marked: &Vec<Card>) {
         let path = format!("{}/{}{}", data_local_dir().unwrap().display() , CardManager::PATH, ".csv");
@@ -138,8 +75,18 @@ impl CardManager {
         wtr.flush().unwrap();
     }
 
-    pub fn cards(&self) -> &Option<Vec<Card>> {
-        &self.cards
+    pub fn get_labels(&self) -> Vec<String> {
+        //TODO: do optymalizacji
+        let mut labels = Vec::new();
+
+        for card in self.cards.as_ref().unwrap() {
+            labels.push(card.label().clone());
+        }
+
+        labels.sort();
+        labels.dedup();
+
+        labels
     }
 
     fn load_cards() -> Option<Vec<Card>> {
@@ -165,14 +112,7 @@ impl CardManager {
             };
             
             let (next_review, level, label, question, answer) = record;
-
-            let card = Card {
-                next_review,
-                level,
-                label,
-                question,
-                answer,
-            };
+            let card = Card { next_review, level, label, question, answer, };
 
             cards.push(card);
         }
@@ -298,3 +238,71 @@ impl CardManager {
             }
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct Card {
+    next_review: u64,
+    level: u64,
+    label: String,
+    question: String,
+    answer: String,
+}
+
+impl Card {
+    pub fn new() -> Card {
+        Card {
+            next_review: Card::today(),
+            level: 0,
+            label: String::new(),
+            question: String::new(),
+            answer: String::new(),
+        }
+    }
+
+    pub fn with_question(&mut self, question: &str) -> &mut Card {
+        self.question = question.to_string();
+        self
+    }
+
+    pub fn with_answer(&mut self, answer: &str) -> &mut Card {
+        self.answer = answer.to_string();
+        self
+    }
+
+    pub fn with_label(&mut self, label: &str) -> &mut Card {
+        self.label = label.to_string();
+        self
+    }
+
+    pub fn with_next_review(&mut self, next_review: u64) -> &mut Card {
+        self.next_review = next_review;
+        self
+    }
+
+    pub fn with_level(&mut self, level: u64) -> &mut Card {
+        self.level = level;
+        self
+    }
+
+    pub fn question(&self) -> &String { &self.question }
+
+    pub fn answer(&self) -> &String { &self.answer }
+
+    pub fn label(&self) -> &String { &self.label }
+
+    pub fn next_review(&self) -> u64 { self.next_review }
+
+    pub fn level(&self) -> u64 { self.level }
+
+    fn today() -> u64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards").as_secs() / 86400
+    }
+}
+
+pub enum Mode {
+    Review,
+    Add,
+}
+

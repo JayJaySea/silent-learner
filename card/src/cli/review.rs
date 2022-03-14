@@ -106,8 +106,7 @@ impl ReviewMenu {
 
 impl Menu for ReviewMenu {
     fn run(&mut self) {
-        ReviewMenu::clear();
-        println!("{}", "Review cards".red().bold());
+        self.clear();
         let card = match self.for_review.front() {
             Some(c) => c,
             None => {
@@ -118,6 +117,18 @@ impl Menu for ReviewMenu {
             },
         };
 
+        let mut label = String::new();
+
+        if !card.label().trim().is_empty() {
+            label = format!("{}{}{}", 
+                "(".bold().white(),
+                card.label().white().bold(),
+                ")".bold().white(),
+                );
+        }
+
+        println!("{} {}", "Review cards".red().bold(), label);
+
         if !self.revealed {
             self.revealed = true;
             println!("{} {}", "Question:".blue().bold(), card.question());
@@ -127,8 +138,8 @@ impl Menu for ReviewMenu {
             self.input();
         }
 
-        ReviewMenu::clear();
-        println!("{}", "Review cards".red().bold());
+        self.clear();
+        println!("{} {}", "Review cards".red().bold(), label);
         println!("{} {}", "Question:".blue().bold(), card.question());
         println!("{} {}", "Answer:".blue().bold(), card.answer());
         stdout().flush().unwrap();
